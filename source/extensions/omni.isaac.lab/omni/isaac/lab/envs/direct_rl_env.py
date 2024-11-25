@@ -172,8 +172,8 @@ class DirectRLEnv(gym.Env):
         self.common_step_counter = 0
         # -- init buffers
         self.episode_length_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
-        self.reset_terminated = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
-        self.reset_time_outs = torch.zeros_like(self.reset_terminated)
+        self.reset_terminated = torch.zeros(self.num_envs, device=self.device, dtype=torch.float32)  # <-- CaT implementation
+        self.env_reset = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self.reset_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
 
         # setup the action and observation spaces for Gym
@@ -338,8 +338,8 @@ class DirectRLEnv(gym.Env):
         self.episode_length_buf += 1  # step in current episode (per env)
         self.common_step_counter += 1  # total step (common for all envs)
 
-        self.reset_terminated[:], self.reset_time_outs[:] = self._get_dones()
-        self.reset_buf = self.reset_time_outs
+        self.reset_terminated[:], self.env_reset[:] = self._get_dones()
+        self.reset_buf = self.env_reset  # <--- CaT implementation
         self.reward_buf = self._get_rewards()
 
         # -- reset envs that terminated/timed-out and log the episode information
@@ -364,7 +364,7 @@ class DirectRLEnv(gym.Env):
             self.obs_buf["policy"] = self._observation_noise_model.apply(self.obs_buf["policy"])
 
         # return observations, rewards, resets and extras
-        return self.obs_buf, self.reward_buf, self.reset_terminated, self.reset_time_outs, self.extras
+        return self.obs_buf, self.reward_buf, self.reset_terminated, self.env_reset, self.extras
 
     @staticmethod
     def seed(seed: int = -1) -> int:

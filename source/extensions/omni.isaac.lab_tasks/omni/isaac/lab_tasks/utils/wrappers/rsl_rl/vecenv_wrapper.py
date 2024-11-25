@@ -176,7 +176,8 @@ class RslRlVecEnvWrapper(VecEnv):
         # record step information
         obs_dict, rew, terminated, truncated, extras = self.env.step(actions)
         # compute dones for compatibility with RSL-RL
-        dones = terminated.to(dtype=torch.long)
+        terminated = terminated.to(dtype=torch.float32)  # <-- CaT implementation
+        truncated = truncated.to(dtype=torch.long)
         # move extra observations to the extras dict
         obs = obs_dict["policy"]
         extras["observations"] = obs_dict
@@ -186,7 +187,7 @@ class RslRlVecEnvWrapper(VecEnv):
             extras["time_outs"] = truncated
 
         # return the step information
-        return obs, rew, dones, extras
+        return obs, rew, terminated, truncated, extras
 
     def close(self):  # noqa: D102
         return self.env.close()
