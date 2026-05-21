@@ -334,14 +334,17 @@ class WrenchComposer:
         else:
             if isinstance(env_ids, list):
                 env_ids = torch.tensor(env_ids, dtype=torch.int64, device=self.device)
+            elif isinstance(env_ids, wp.array):
+                env_ids = wp.to_torch(env_ids)
             elif isinstance(env_ids, slice):
                 if env_ids == slice(None):
                     self._composed_force_b.zero_()
                     self._composed_torque_b.zero_()
+                    self._active = False  # slice(None) resets all envs, equivalent to env_ids=None
                     self._link_poses_updated = False
                     return
 
-            wp.to_torch(self._composed_force_b)[env_ids] = 0.0
-            wp.to_torch(self._composed_torque_b)[env_ids] = 0.0
+            self._composed_force_b_torch[env_ids] = 0.0
+            self._composed_torque_b_torch[env_ids] = 0.0
 
         self._link_poses_updated = False
